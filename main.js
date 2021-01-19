@@ -67,12 +67,17 @@ function createNoteTable() {
   for (let i=0; i<4; i++) {
     noteFreq[i] = [];
   }
-  noteFreq[0]["C"] = 32.703195662574829;
   for (let i=1; i<3; i++) {
+    if (i!=0){
+      noteFreq[i]["C"] = noteFreq[i-1]["C"] * 2;
+    } else {
+      noteFreq[0]["C"] = 32.703195662574829;
+    }
+    
     for (let k=1; k<12; k++) {
       noteFreq[i][listChroma[k]] = noteFreq[i][listChroma[k-1]] * Math.pow(2,1/12);
     }
-    noteFreq[i]["C"] = noteFreq[i-1]["C"] * 2;
+    
   }
   
   return noteFreq;
