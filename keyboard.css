@@ -11,7 +11,7 @@
   margin: 0;
 }
 
-.key {
+.white_key {
   cursor: pointer;
   font: 16px "Open Sans", "Lucida Grande", "Arial", sans-serif;
   border: 1px solid black;
@@ -29,7 +29,7 @@
   -ms-user-select: none;
 }
 
-.key div {
+.white_key div {
   position: absolute;
   bottom: 0;
   text-align: center;
@@ -37,16 +37,57 @@
   pointer-events: none;
 }
 
-.key div sub {
+.white_key div sub {
   font-size: 10px;
   pointer-events: none;
 }
 
-.key:hover {
+.white_key:hover {
   background-color: rgb(6, 6, 200);
 }
 
-.key:active {
+.white_key:active {
+  background-color: rgb(250, 1, 1);
+  color: #fff;
+}
+
+.black_key {
+  cursor: pointer;
+  font: 16px "Open Sans", "Lucida Grande", "Arial", sans-serif;
+  border: 1px solid black;
+  border-radius: 5px;
+  width: 20px;
+  height: 80px;
+  text-align: center;
+  box-shadow: 2px 2px darkgray;
+  display: inline-block;
+  position: relative;
+  margin-right: 3px;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  background-color: rgb(0, 0, 0);
+}
+
+.black_key div {
+  position: absolute;
+  bottom: 0;
+  text-align: center;
+  width: 100%;
+  pointer-events: none;
+}
+
+.black_key div sub {
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.black_key:hover {
+  background-color: rgb(6, 6, 200);
+}
+
+.black_key:active {
   background-color: rgb(250, 1, 1);
   color: #fff;
 }

@@ -7,6 +7,13 @@ let masterGainNode = null;
 let keyboard = document.querySelector(".keyboard");
 let wavePicker = document.querySelector("select[name='waveform']");
 let volumeControl = document.querySelector("input[name='volume']");
+let octaveDownButton = document.getElementById('octave_down')
+let octaveUpButton = document.getElementById('octave_up')
+
+// Init variable for octaver
+let globalOctave = 0
+let nbOctaves = 3
+let maxOctave = 4
 
 // Init global oscillators variables
 let noteFreq = null;
@@ -17,8 +24,11 @@ let cosineTerms = null;
 
 // Build the keyboard and prepare the app to play music
 function setup() {
+
   // Create the note to frequency table
   noteFreq = createNoteTable();
+
+  // Volume control
   volumeControl.addEventListener("change", changeVolume, false);
   masterGainNode = audioContext.createGain();
   masterGainNode.connect(audioContext.destination);
@@ -35,7 +45,10 @@ function setup() {
 
     keyList.forEach(function(key) {
       if (key[0].length == 1) {
-        octaveElem.appendChild(createKey(key[0], idx, key[1]));
+        octaveElem.appendChild(createKey(key[0], idx, key[1], false));
+      }
+      else {
+        octaveElem.appendChild(createKey(key[0], idx, key[1], true));
       }
     });
 
@@ -64,12 +77,12 @@ function createNoteTable() {
   // Init table and variables
   let noteFreq = [];
   let listChroma = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
-  for (let i=0; i<4; i++) {
+  for (let i=0; i<nbOctaves+1; i++) {
     noteFreq[i] = [];
   }
 
   noteFreq[0]["C"] = 32.703195662574829*4
-  for (let i=0; i<3; i++) {    
+  for (let i=0; i<nbOctaves; i++) {    
     for (let k=1; k<12; k++) {
       noteFreq[i][listChroma[k]] = noteFreq[i][listChroma[k-1]] * Math.pow(2,1/12);
     }
@@ -81,15 +94,21 @@ function createNoteTable() {
 
 
 // Create key according to the values of note, octave and frequency
-function createKey(note, octave, freq) {
+function createKey(note, octave, freq, sharp) {
   let keyElement = document.createElement("div");
   let labelElement = document.createElement("div");
 
-  keyElement.className = "key";
+  if (sharp == false) {
+    keyElement.className = "white_key";
+  }
+  else {
+    keyElement.className = "black_key";
+  }
+
   keyElement.dataset["octave"] = octave;
   keyElement.dataset["note"] = note;
   keyElement.dataset["frequency"] = freq;
-  labelElement.innerHTML = note + "<sub>" + octave + "</sub>";
+
   keyElement.appendChild(labelElement);
   keyElement.addEventListener("mousedown", notePressed, false);
   keyElement.addEventListener("mouseup", noteReleased, false);
@@ -156,5 +175,3 @@ function changeVolume(event) {
   }
   console.log(volumeControl.value)
 }
-
-
