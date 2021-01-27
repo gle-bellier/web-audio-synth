@@ -232,14 +232,14 @@ function TransposeOctave(x) {
     oct = 0.5;
   }
 
-  for (let i=0; i<3; i++) {    
-    for (let k=0; k<12; k++) {
-      noteFreq[i][listChroma[k]] = noteFreq[i][listChroma[k]]*oct;
-    }
-    print(noteFreq[i][listChroma[k]])
-  }
-  noteFreq[3]["C"] = noteFreq[3]["C"]*oct
+  let keys = document.querySelectorAll("div.white_key, div.black_key");
+  keys.forEach((key) => {
+    key.dataset["frequency"] = key.dataset["frequency"]*oct;
+  });
+
 }
+
+  
 
 
 document.getElementById('-_OCTAVE').addEventListener('click', function() { TransposeOctave(-1); });
