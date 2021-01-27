@@ -96,6 +96,7 @@ function createNoteTable() {
 // Create key according to the values of note, octave and frequency
 function createKey(note, octave, freq, sharp) {
   let keyElement = document.createElement("div");
+  keyElement.tagName = "key"
   let labelElement = document.createElement("div");
 
   if (sharp == false) {
@@ -108,6 +109,7 @@ function createKey(note, octave, freq, sharp) {
   keyElement.dataset["octave"] = octave;
   keyElement.dataset["note"] = note;
   keyElement.dataset["frequency"] = freq;
+  keyElement.innerHTML = note;
 
   keyElement.appendChild(labelElement);
   keyElement.addEventListener("mousedown", notePressed, false);
@@ -175,3 +177,24 @@ function changeVolume(event) {
   }
   console.log(volumeControl.value)
 }
+
+// Change octave
+function TransposeOctave(x) {
+
+  let oct = 2;
+  if (x==-1){
+    oct = 0.5;
+  }
+
+  for (let i=0; i<3; i++) {    
+    for (let k=0; k<12; k++) {
+      noteFreq[i][listChroma[k]] = noteFreq[i][listChroma[k]]*oct;
+    }
+    print(noteFreq[i][listChroma[k]])
+  }
+  noteFreq[3]["C"] = noteFreq[3]["C"]*oct
+}
+
+
+document.getElementById('-_OCTAVE').addEventListener('click', function() { TransposeOctave(-1); });
+document.getElementById('+_OCTAVE').addEventListener('click', function() { TransposeOctave(1); });
