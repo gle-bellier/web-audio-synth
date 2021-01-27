@@ -62,11 +62,45 @@ function setup() {
   for (i=0; i<4; i++) {
       oscList[i] = {};
   }
+
+  // Get MIDI access
+  navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
 }
 
 setup();
 
 
+//      MIDI FUNCTIONS
+function onMIDISuccess(midiAccess) {
+    for (var input of midiAccess.inputs.values()) {
+        input.onmidimessage = getMIDIMessage;
+    }
+}
+
+function getMIDIMessage(message) {
+    var command = message.data[0];
+    var note = message.data[1];
+    var velocity = (message.data.length > 2) ? message.data[2] : 0; // a velocity value might not be included with a noteOff command
+
+    switch (command) {
+        case 144: // noteOn
+            if (velocity > 0) {
+                noteOn(note, velocity);
+            } else {
+                noteOff(note);
+            }
+            break;
+        case 128: // noteOff
+            noteOff(note);
+            break;
+        // we could easily expand this switch statement to cover other types of commands such as controllers or sysex
+    }
+}
+
+
+function onMIDIFailure() {
+    console.log('Could not access your MIDI devices.');
+}
 
 
 //			KEYBOARD FUNCTIONS
@@ -128,6 +162,18 @@ function createKey(note, octave, freq, sharp) {
 function playTone(freq) {
   let osc = audioContext.createOscillator();
   osc.connect(masterGainNode);
+  
+
+  var ringGain = audioContext.createGain();
+  ringGain.gain.setValueAtTime(0, 0);
+  var ringCarrier = audioContext.createOscillator();
+  ringCarrier.type = ringCarrier.SINE;
+  ringCarrier.frequency.setValueAtTime(freq*0.5, 0);
+  ringCarrier.connect(ringGain.gain);
+  osc.connect(ringGain);
+  ringGain.connect(audioContext.destination);
+  ringCarrier.start();
+
 
   let type = wavePicker.options[wavePicker.selectedIndex].value;
 
