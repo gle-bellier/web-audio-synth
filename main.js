@@ -7,13 +7,6 @@ let masterGainNode = null;
 let keyboard = document.querySelector(".keyboard");
 let wavePicker = document.querySelector("select[name='waveform']");
 let volumeControl = document.querySelector("input[name='volume']");
-let octaveDownButton = document.getElementById('octave_down')
-let octaveUpButton = document.getElementById('octave_up')
-
-// Init variable for octaver
-let globalOctave = 0
-let nbOctaves = 3
-let maxOctave = 4
 
 // Init global oscillators variables
 let noteFreq = null;
@@ -21,14 +14,13 @@ let customWaveform = null;
 let sineTerms = null;
 let cosineTerms = null;
 
+let output = null;
+
 
 // Build the keyboard and prepare the app to play music
 function setup() {
-
   // Create the note to frequency table
   noteFreq = createNoteTable();
-
-  // Volume control
   volumeControl.addEventListener("change", changeVolume, false);
   masterGainNode = audioContext.createGain();
   masterGainNode.connect(audioContext.destination);
@@ -45,10 +37,7 @@ function setup() {
 
     keyList.forEach(function(key) {
       if (key[0].length == 1) {
-        octaveElem.appendChild(createKey(key[0], idx, key[1], false));
-      }
-      else {
-        octaveElem.appendChild(createKey(key[0], idx, key[1], true));
+        octaveElem.appendChild(createKey(key[0], idx, key[1]));
       }
     });
 
@@ -77,12 +66,12 @@ function createNoteTable() {
   // Init table and variables
   let noteFreq = [];
   let listChroma = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
-  for (let i=0; i<nbOctaves+1; i++) {
+  for (let i=0; i<4; i++) {
     noteFreq[i] = [];
   }
 
   noteFreq[0]["C"] = 32.703195662574829*4
-  for (let i=0; i<nbOctaves; i++) {    
+  for (let i=0; i<3; i++) {    
     for (let k=1; k<12; k++) {
       noteFreq[i][listChroma[k]] = noteFreq[i][listChroma[k-1]] * Math.pow(2,1/12);
     }
@@ -94,23 +83,15 @@ function createNoteTable() {
 
 
 // Create key according to the values of note, octave and frequency
-function createKey(note, octave, freq, sharp) {
+function createKey(note, octave, freq) {
   let keyElement = document.createElement("div");
-  keyElement.tagName = "key"
   let labelElement = document.createElement("div");
 
-  if (sharp == false) {
-    keyElement.className = "white_key";
-  }
-  else {
-    keyElement.className = "black_key";
-  }
-
+  keyElement.className = "key";
   keyElement.dataset["octave"] = octave;
   keyElement.dataset["note"] = note;
   keyElement.dataset["frequency"] = freq;
-  keyElement.innerHTML = note;
-
+  labelElement.innerHTML = note + "<sub>" + octave + "</sub>";
   keyElement.appendChild(labelElement);
   keyElement.addEventListener("mousedown", notePressed, false);
   keyElement.addEventListener("mouseup", noteReleased, false);
@@ -129,6 +110,20 @@ function playTone(freq) {
   let osc = audioContext.createOscillator();
   osc.connect(masterGainNode);
 
+
+  var ringGain = audioContext.createGain();
+  ringGain.gain.setValueAtTime(0, 0);
+  var ringCarrier = audioContext.createOscillator();
+  ringCarrier.type = ringCarrier.SINE;
+  ringCarrier.frequency.setValueAtTime(freq*0.5, 0);
+  ringCarrier.connect(ringGain.gain);
+  osc.connect(ringGain);
+  ringGain.connect(audioContext.destination);
+  ringCarrier.start();
+
+
+
+
   let type = wavePicker.options[wavePicker.selectedIndex].value;
 
   if (type == "custom") {
@@ -140,6 +135,8 @@ function playTone(freq) {
   osc.frequency.value = freq;
   osc.start();
 
+  //output = osc*(1+osc);
+  //return output;
   return osc;
 }
 
@@ -178,23 +175,4 @@ function changeVolume(event) {
   console.log(volumeControl.value)
 }
 
-// Change octave
-function TransposeOctave(x) {
 
-  let oct = 2;
-  if (x==-1){
-    oct = 0.5;
-  }
-
-  for (let i=0; i<3; i++) {    
-    for (let k=0; k<12; k++) {
-      noteFreq[i][listChroma[k]] = noteFreq[i][listChroma[k]]*oct;
-    }
-    print(noteFreq[i][listChroma[k]])
-  }
-  noteFreq[3]["C"] = noteFreq[3]["C"]*oct
-}
-
-
-document.getElementById('-_OCTAVE').addEventListener('click', function() { TransposeOctave(-1); });
-document.getElementById('+_OCTAVE').addEventListener('click', function() { TransposeOctave(1); });
