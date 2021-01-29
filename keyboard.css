@@ -27,6 +27,7 @@
   -moz-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
+  background-color: rgb(250, 250, 250);
 }
 
 .white_key div {
@@ -40,10 +41,6 @@
 .white_key div sub {
   font-size: 10px;
   pointer-events: none;
-}
-
-.white_key:hover {
-  background-color: rgb(6, 6, 200);
 }
 
 .white_key:active {
@@ -82,10 +79,6 @@
 .black_key div sub {
   font-size: 10px;
   pointer-events: none;
-}
-
-.black_key:hover {
-  background-color: rgb(6, 6, 200);
 }
 
 .black_key:active {

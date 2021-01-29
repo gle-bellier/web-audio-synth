@@ -2,18 +2,18 @@
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
 let oscList = [];
 let masterGainNode = null;
+let ringGainNode = null;
 
 // Reference to html elements
 let keyboard = document.querySelector(".keyboard");
 let wavePicker = document.querySelector("select[name='waveform']");
 let volumeControl = document.querySelector("input[name='volume']");
+let ringControl = document.querySelector("input[name='ring']");
 let octaveDownButton = document.getElementById('octave_down')
 let octaveUpButton = document.getElementById('octave_up')
 
 // Init variable for octaver
-let globalOctave = 0
 let nbOctaves = 3
-let maxOctave = 4
 
 // Init global oscillators variables
 let noteFreq = null;
@@ -21,6 +21,8 @@ let customWaveform = null;
 let sineTerms = null;
 let cosineTerms = null;
 
+// Build chroma list
+let listChroma = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
 
 // Build the keyboard and prepare the app to play music
 function setup() {
@@ -33,6 +35,12 @@ function setup() {
   masterGainNode = audioContext.createGain();
   masterGainNode.connect(audioContext.destination);
   masterGainNode.gain.value = volumeControl.value;
+
+  // Ring modulation control
+  ringControl.addEventListener("change", changeRing, false);
+  ringGainNode = audioContext.createGain();
+  ringGainNode.connect(masterGainNode);
+  ringGainNode.gain.value = ringControl.value;
 
   // Create the keys; skip any that are sharp or flat; for
   // our purposes we don't need them. Each octave is inserted
@@ -63,43 +71,99 @@ function setup() {
       oscList[i] = {};
   }
 
-  // Get MIDI access
-  navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+    // Init Web Midi
+    if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess().then(onMIDIInit, onMIDIReject);
+    } else {
+        console.log("No MIDI support present in your browser. You're gonna have a bad time.");
+    }
 }
 
 setup();
 
 
 //      MIDI FUNCTIONS
-function onMIDISuccess(midiAccess) {
-    for (var input of midiAccess.inputs.values()) {
+
+// Midi callback is called if Midi is accessible
+function onMIDIInit (midi) {
+    console.log('MIDI ready!');
+
+    let haveAtLeastOneDevice = false;
+    let inputs = midi.inputs.values();
+
+    // assign Midi Event Handler for all midi Inputs (for example)
+    for (let input of inputs) {
+        console.log(input); // id : new one is created on machine reboot or on new connection
         input.onmidimessage = getMIDIMessage;
+        haveAtLeastOneDevice = true;
     }
+
+    if (!haveAtLeastOneDevice) { console.log("No MIDI input devices present. You're gonna have a bad time."); }
 }
 
+// Reject Midi
+function onMIDIReject (err) {
+    console.log("The MIDI system failed to start. You're gonna have a bad time.");
+}
+
+// Receive MIDI message
 function getMIDIMessage(message) {
+
     var command = message.data[0];
     var note = message.data[1];
     var velocity = (message.data.length > 2) ? message.data[2] : 0; // a velocity value might not be included with a noteOff command
 
     switch (command) {
-        case 144: // noteOn
+        case 144: // note on
             if (velocity > 0) {
-                noteOn(note, velocity);
+                noteOn(note);
             } else {
                 noteOff(note);
             }
             break;
-        case 128: // noteOff
+        case 128: // note off
             noteOff(note);
             break;
         // we could easily expand this switch statement to cover other types of commands such as controllers or sysex
     }
 }
 
+// Function to handle noteOn messages (ie. key is pressed)
+// Think of this like an 'onkeydown' event
+function noteOn(note) {
+  let octave = Math.trunc(note / 12) - 1;
+  let chroma = note % 12
+  let keys = Array.from(document.querySelectorAll("div.white_key, div.black_key"));
 
-function onMIDIFailure() {
-    console.log('Could not access your MIDI devices.');
+  if ((octave >= 0 && octave < 3) || (octave == 3 && chroma == 0)) {
+    let keyOn = keys.find(key => (key.dataset["octave"] == octave && key.dataset["note"] == listChroma[chroma]));
+    oscList[keyOn.dataset["octave"]][keyOn.dataset["note"]] = playTone(keyOn.dataset["frequency"]);
+    // Color in red when the note is played
+    keyOn.style.backgroundColor="rgb(250, 1, 1)";
+  }
+
+}
+
+// Function to handle noteOff messages (ie. key is released)
+// Think of this like an 'onkeyup' event
+function noteOff(note) {
+  let octave = Math.trunc(note / 12) - 1;
+  let chroma = note % 12
+  let keys = Array.from(document.querySelectorAll("div.white_key, div.black_key"));
+
+  if ((octave >= 0 && octave < 3) || (octave == 3 && chroma == 0)) {
+    let keyOff = keys.find(key => (key.dataset["octave"] == octave && key.dataset["note"] == listChroma[chroma]));
+    oscList[keyOff.dataset["octave"]][keyOff.dataset["note"]].stop();
+    delete oscList[keyOff.dataset["octave"]][keyOff.dataset["note"]];
+
+    // Get the color back to normal when note is released
+    if (keyOff.dataset["note"].length == 1){
+      keyOff.style.backgroundColor="rgb(250, 250, 250)";
+    }
+    else {
+      keyOff.style.backgroundColor="rgb(0, 0, 0)";
+    }
+  }
 }
 
 
@@ -110,7 +174,6 @@ function createNoteTable() {
 
   // Init table and variables
   let noteFreq = [];
-  let listChroma = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
   for (let i=0; i<nbOctaves+1; i++) {
     noteFreq[i] = [];
   }
@@ -160,9 +223,9 @@ function createKey(note, octave, freq, sharp) {
 
 // Play a tone at a given frequency
 function playTone(freq) {
+
   let osc = audioContext.createOscillator();
   osc.connect(masterGainNode);
-  
 
   var ringGain = audioContext.createGain();
   ringGain.gain.setValueAtTime(0, 0);
@@ -171,9 +234,9 @@ function playTone(freq) {
   ringCarrier.frequency.setValueAtTime(freq*0.5, 0);
   ringCarrier.connect(ringGain.gain);
   osc.connect(ringGain);
-  ringGain.connect(audioContext.destination);
-  ringCarrier.start();
 
+  ringGain.connect(ringGainNode);
+  ringCarrier.start();
 
   let type = wavePicker.options[wavePicker.selectedIndex].value;
 
@@ -199,7 +262,11 @@ function notePressed(event) {
       oscList[octave][dataset["note"]] = playTone(dataset["frequency"]);
       dataset["pressed"] = "yes";
     }
+
+    // Color in red when the note is played
+    event.target.style.backgroundColor="rgb(250, 1, 1)";
   }
+
 }
 
 
@@ -213,6 +280,14 @@ function noteReleased(event) {
     delete oscList[octave][dataset["note"]];
     delete dataset["pressed"];
   }
+
+  // Get the color back to normal when note is released
+  if (dataset["note"].length == 1) {
+    event.target.style.backgroundColor="rgb(250, 250, 250)";
+  }
+  else {
+    event.target.style.backgroundColor="rgb(0, 0, 0)";
+  }
 }
 
 // Change master volume
@@ -222,6 +297,15 @@ function changeVolume(event) {
     masterGainNode.gain.value = volume;
   }
   console.log(volumeControl.value)
+}
+
+// Change ring modulation
+function changeRing(event) {
+  let ring = parseFloat(ringControl.value);
+  if (isFinite(ring)) {
+    ringGainNode.gain.value = ring;
+  }
+  console.log(ringControl.value)
 }
 
 // Change octave
@@ -238,9 +322,6 @@ function TransposeOctave(x) {
   });
 
 }
-
-  
-
 
 document.getElementById('-_OCTAVE').addEventListener('click', function() { TransposeOctave(-1); });
 document.getElementById('+_OCTAVE').addEventListener('click', function() { TransposeOctave(1); });
