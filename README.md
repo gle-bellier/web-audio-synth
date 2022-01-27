@@ -1,6 +1,6 @@
 # Synth Project
 
-## Principal
+## Principle
 
 The idea of this project is to control a simple synth with a midi Controller through the Web Midi API.
 
